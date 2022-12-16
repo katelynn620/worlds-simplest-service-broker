@@ -8,6 +8,7 @@ import (
 	"github.com/cloudfoundry-community/worlds-simplest-service-broker/pkg/broker"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/gorilla/mux"
 	"github.com/pivotal-cf/brokerapi"
 )
 
@@ -28,13 +29,20 @@ func main() {
 	}
 	brokerAPI := brokerapi.New(servicebroker, logger, brokerCredentials)
 
-	http.HandleFunc("/health", statusAPI)
-	http.Handle("/", brokerAPI)
+	r := mux.NewRouter()
+	r.HandleFunc("/health", statusAPI).Methods(http.MethodGet)
+	r.PathPrefix("/v2").Handler(brokerAPI)
+
+	// http.HandleFunc("/health", statusAPI)
+	// http.Handle("/", brokerAPI)
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3000"
+		port = ":3000"
 	}
-	fmt.Println("\n\nStarting World's Simplest Service Broker on 0.0.0.0:" + port)
-	logger.Fatal("http-listen", http.ListenAndServe("0.0.0.0:"+port, nil))
+	// fmt.Println("\n\nStarting World's Simplest Service Broker on 0.0.0.0:" + port)
+
+	logger.Info("Serving", lager.Data{"port": port})
+	http.ListenAndServe(port, r)
+	// logger.Fatal("http-listen", http.ListenAndServe("0.0.0.0:"+port, nil))
 }
